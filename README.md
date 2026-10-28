@@ -1,8 +1,8 @@
-# 🌪️ Parametric Climate Risk & Actuarial Pricing Engine
+# 🌪️ ParamRisk — Parametric Climate Risk & Actuarial Pricing Engine
 
 [![Python Version](https://img.shields.io/badge/Python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/)
 [![Build Status](https://img.shields.io/badge/Tests-8%20Passed-emerald)](tests/)
-[![Domain](https://img.shields.io/badge/Domain-Climate%20Insurtech%20%26%20Parametric%20Risk-purple)](https://github.com/nilesh7757/analysis_project)
+[![Domain](https://img.shields.io/badge/Domain-Climate%20Insurtech%20%26%20Parametric%20Risk-purple)](https://github.com/nilesh7757/paramRisk)
 [![License](https://img.shields.io/badge/License-MIT-slate)](LICENSE)
 
 An open-source quantitative modeling engine for **Parametric (Index-Based) Climate Insurance**, developed for high-precision disaster risk financing, drought protection, and heatwave resilience across agricultural and urban regions in India.
@@ -77,8 +77,8 @@ Using **Inverse Transform Sampling**, the engine runs 10,000 synthetic seasons t
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/nilesh7757/analysis_project.git
-cd analysis_project
+git clone https://github.com/nilesh7757/paramRisk.git
+cd paramRisk
 ```
 
 ### 2. Run the Unit Test Suite (8/8 Tests)
