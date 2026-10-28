@@ -91,6 +91,15 @@ python3 -m unittest discover -s tests -p "test_*.py"
 python3 main.py
 ```
 
+### 4. Launch the Interactive Web Dashboard
+You can run the web dashboard in two ways:
+* **Option A (Instant in any browser)**: Open `dashboard.html` directly in your browser (no server or dependencies needed).
+* **Option B (Streamlit Web App)**:
+  ```bash
+  pip install streamlit
+  streamlit run app.py
+  ```
+
 ---
 
 ## 📊 Sample Output (10,000 Stochastic Iterations)

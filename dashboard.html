@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ParamRisk — Interactive Actuarial & Climate Risk Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #e2e8f0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .glass-card { background: rgba(17, 24, 39, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-glow:hover { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 0 25px rgba(59, 130, 246, 0.15); }
+    input[type=range] { accent-color: #3b82f6; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- TOP NAVBAR -->
+  <header class="border-b border-gray-800 bg-gray-900/60 sticky top-0 z-50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <i class="fa-solid fa-tornado text-white text-lg"></i>
+        </div>
+        <div>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">ParamRisk</span>
+          <span class="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">v1.2.0 • Live Simulator</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <a href="https://github.com/nilesh7757/paramRisk" target="_blank" class="text-sm font-medium text-gray-300 hover:text-white flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-800/80 hover:bg-gray-800 transition">
+          <i class="fa-brands fa-github text-base"></i>
+          <span>GitHub Repo</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+
+    <!-- INTRO HEADER -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-extrabold text-white tracking-tight">Parametric Climate Risk & Actuarial Pricing Engine</h1>
+        <p class="text-gray-400 text-sm mt-1">Calibrate linear strike/exit contracts, evaluate tail-risk distributions, and simulate 10,000 stochastic years.</p>
+      </div>
+      <div class="flex items-center space-x-3 bg-gray-900 border border-gray-800 rounded-xl p-1.5 self-start">
+        <button id="peril-drought-btn" onclick="setPeril('drought')" class="px-4 py-1.5 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow">
+          <i class="fa-solid fa-cloud-sun-rain mr-1.5"></i> Gujarat Monsoon Deficit
+        </button>
+        <button id="peril-solar-btn" onclick="setPeril('solar')" class="px-4 py-1.5 rounded-lg text-sm font-semibold transition text-gray-400 hover:text-white">
+          <i class="fa-solid fa-solar-panel mr-1.5"></i> Rooftop Solar (380006)
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI STATS GRID -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass-card rounded-2xl p-5 glass-glow transition">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Pure Burn Cost (Expected Loss)</span>
+        <div class="mt-2 flex items-baseline space-x-2">
+          <span id="stat-burn-cost" class="text-2xl font-bold text-white mono">₹2,277.40</span>
+          <span class="text-xs text-blue-400 font-medium">/ policy</span>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Annual actuarial average payout across all seasons</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 glass-glow transition">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Burn Rate (% of Sum Insured)</span>
+        <div class="mt-2 flex items-baseline space-x-2">
+          <span id="stat-burn-rate" class="text-2xl font-bold text-indigo-400 mono">11.39%</span>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Pure loss cost ratio relative to maximum liability</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 glass-glow transition">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Tail VaR (TVaR 99% / Solvency)</span>
+        <div class="mt-2 flex items-baseline space-x-2">
+          <span id="stat-tvar" class="text-2xl font-bold text-rose-400 mono">₹18,450.00</span>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Average loss in the top 1% catastrophe seasons</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 glass-glow transition border-blue-500/30 bg-blue-950/20">
+        <span class="text-xs font-semibold uppercase tracking-wider text-blue-400">Commercial Gross Premium</span>
+        <div class="mt-2 flex items-baseline space-x-2">
+          <span id="stat-commercial-prem" class="text-2xl font-bold text-emerald-400 mono">₹3,425.00</span>
+          <span class="text-xs text-emerald-500 font-medium">/ year</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Pure Cost + 15% Risk Buffer + 10% Expense Load</p>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE CONTROLS & CHARTS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- CONTROLS COLUMN -->
+      <div class="glass-card rounded-2xl p-6 space-y-6 h-fit">
+        <div class="border-b border-gray-800 pb-3 flex items-center justify-between">
+          <h2 class="text-base font-bold text-white flex items-center">
+            <i class="fa-solid fa-sliders text-blue-500 mr-2"></i> Contract Calibration
+          </h2>
+          <button onclick="resetDefaults()" class="text-xs text-blue-400 hover:underline">Reset</button>
+        </div>
+
+        <!-- STRIKE TRIGGER SLIDER -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-sm">
+            <label id="lbl-strike" class="font-medium text-gray-300">Strike Trigger</label>
+            <span id="val-strike" class="mono font-bold text-blue-400">120 mm</span>
+          </div>
+          <input id="input-strike" type="range" min="50" max="250" value="120" step="5" class="w-full h-2 bg-gray-800 rounded-lg cursor-pointer" oninput="updateSimulation()">
+          <p class="text-xs text-gray-500">Threshold where insurance payout starts ($0 payout at strike).</p>
+        </div>
+
+        <!-- EXIT THRESHOLD SLIDER -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-sm">
+            <label id="lbl-exit" class="font-medium text-gray-300">Exit Threshold (100% Cap)</label>
+            <span id="val-exit" class="mono font-bold text-purple-400">250 mm</span>
+          </div>
+          <input id="input-exit" type="range" min="150" max="400" value="250" step="5" class="w-full h-2 bg-gray-800 rounded-lg cursor-pointer" oninput="updateSimulation()">
+          <p class="text-xs text-gray-500">Catastrophe threshold where maximum policy limit is paid.</p>
+        </div>
+
+        <!-- MAXIMUM SUM INSURED -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-sm">
+            <label class="font-medium text-gray-300">Maximum Sum Insured</label>
+            <span id="val-sum-insured" class="mono font-bold text-emerald-400">₹20,000</span>
+          </div>
+          <input id="input-sum-insured" type="range" min="5000" max="50000" value="20000" step="1000" class="w-full h-2 bg-gray-800 rounded-lg cursor-pointer" oninput="updateSimulation()">
+          <p class="text-xs text-gray-500">Total liability per enrolled acre / rooftop installation.</p>
+        </div>
+
+        <!-- RISK MARGIN BUFFER -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-sm">
+            <label class="font-medium text-gray-300">Actuarial Risk Margin Buffer</label>
+            <span id="val-risk-margin" class="mono font-bold text-yellow-400">15%</span>
+          </div>
+          <input id="input-risk-margin" type="range" min="5" max="35" value="15" step="1" class="w-full h-2 bg-gray-800 rounded-lg cursor-pointer" oninput="updateSimulation()">
+          <p class="text-xs text-gray-500">Capital reserve percentage of standard deviation for solvency.</p>
+        </div>
+
+        <!-- FORMULA BADGE -->
+        <div class="p-3.5 rounded-xl bg-gray-900 border border-gray-800 text-xs text-gray-400 space-y-1">
+          <div class="font-semibold text-gray-300">Linear Tick Payout Formulation:</div>
+          <div class="mono text-blue-300">Payout = MaxPayout × (x - Strike) / (Exit - Strike)</div>
+        </div>
+      </div>
+
+      <!-- VISUALIZATIONS COLUMN -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- CHART 1: PAYOUT FUNCTION -->
+        <div class="glass-card rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Parametric Payout Response Function</h3>
+              <p class="text-xs text-gray-400">Piecewise linear interpolation between Strike and Exit bounds</p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Deterministic</span>
+          </div>
+          <div class="h-64">
+            <canvas id="payoutChart"></canvas>
+          </div>
+        </div>
+
+        <!-- CHART 2: STOCHASTIC MONTE CARLO LOSS EXPOSURE -->
+        <div class="glass-card rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Stochastic Loss Probability & Return Periods</h3>
+              <p class="text-xs text-gray-400">Simulated empirical exceedance curve across 10,000 synthetic seasons</p>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Gumbel EVT</span>
+          </div>
+          <div class="h-64">
+            <canvas id="exceedanceChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-gray-800 py-6 text-center text-xs text-gray-500">
+    ParamRisk Engine • Developed by Nilesh Mori (DA-IICT Gandhinagar) • Open Source (MIT License)
+  </footer>
+
+  <script>
+    let currentPeril = 'drought';
+    let payoutChart = null;
+    let exceedanceChart = null;
+
+    // Gumbel distribution parameters for Gujarat monsoon deficit (mm)
+    // Mean = 85.0 mm, StdDev = 42.0 mm
+    const GUMBEL_BETA = 42.0 * Math.sqrt(6) / Math.PI; // ~32.74
+    const GUMBEL_MU = 85.0 - 0.5772156649 * GUMBEL_BETA; // ~66.10
+
+    function gumbelCDF(x) {
+      return Math.exp(-Math.exp(-(x - GUMBEL_MU) / GUMBEL_BETA));
+    }
+
+    function gumbelQuantile(p) {
+      return GUMBEL_MU - GUMBEL_BETA * Math.log(-Math.log(p));
+    }
+
+    function setPeril(peril) {
+      currentPeril = peril;
+      const droughtBtn = document.getElementById('peril-drought-btn');
+      const solarBtn = document.getElementById('peril-solar-btn');
+      
+      if (peril === 'drought') {
+        droughtBtn.className = "px-4 py-1.5 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow";
+        solarBtn.className = "px-4 py-1.5 rounded-lg text-sm font-semibold transition text-gray-400 hover:text-white";
+        document.getElementById('lbl-strike').innerText = "Strike Trigger (Rain Deficit)";
+        document.getElementById('lbl-exit').innerText = "Exit Threshold (Rain Deficit)";
+        document.getElementById('input-strike').min = "50";
+        document.getElementById('input-strike').max = "200";
+        document.getElementById('input-strike').value = "120";
+        document.getElementById('input-exit').min = "180";
+        document.getElementById('input-exit').max = "350";
+        document.getElementById('input-exit').value = "250";
+      } else {
+        solarBtn.className = "px-4 py-1.5 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow";
+        droughtBtn.className = "px-4 py-1.5 rounded-lg text-sm font-semibold transition text-gray-400 hover:text-white";
+        document.getElementById('lbl-strike').innerText = "Strike Trigger (kWh Generation)";
+        document.getElementById('lbl-exit').innerText = "Exit Threshold (kWh Generation)";
+        document.getElementById('input-strike').min = "3900";
+        document.getElementById('input-strike').max = "4550";
+        document.getElementById('input-strike').value = "4370";
+        document.getElementById('input-exit').min = "3200";
+        document.getElementById('input-exit').max = "4000";
+        document.getElementById('input-exit').value = "3800";
+      }
+      updateSimulation();
+    }
+
+    function resetDefaults() {
+      setPeril('drought');
+    }
+
+    function updateSimulation() {
+      const strike = parseFloat(document.getElementById('input-strike').value);
+      const exit = parseFloat(document.getElementById('input-exit').value);
+      const sumInsured = parseFloat(document.getElementById('input-sum-insured').value);
+      const riskMarginPct = parseFloat(document.getElementById('input-risk-margin').value);
+
+      document.getElementById('val-strike').innerText = currentPeril === 'drought' ? `${strike} mm` : `${strike} kWh`;
+      document.getElementById('val-exit').innerText = currentPeril === 'drought' ? `${exit} mm` : `${exit} kWh`;
+      document.getElementById('val-sum-insured').innerText = `₹${sumInsured.toLocaleString()}`;
+      document.getElementById('val-risk-margin').innerText = `${riskMarginPct}%`;
+
+      // Run 10,000 synthetic samples
+      const N = 10000;
+      let totalPayout = 0;
+      let payouts = [];
+
+      for (let i = 0; i < N; i++) {
+        const u = (i + 0.5) / N; // Uniform sampling
+        const x = gumbelQuantile(u);
+        let payout = 0;
+
+        if (currentPeril === 'drought') {
+          if (x >= exit) {
+            payout = sumInsured;
+          } else if (x > strike) {
+            payout = sumInsured * (x - strike) / (exit - strike);
+          }
+        } else {
+          // Solar deficit (inverted)
+          const gen = 4600 - (x - 85) * 4;
+          if (gen <= exit) {
+            payout = sumInsured;
+          } else if (gen < strike) {
+            payout = sumInsured * (strike - gen) / (strike - exit);
+          }
+        }
+        payouts.push(payout);
+        totalPayout += payout;
+      }
+
+      payouts.sort((a, b) => a - b);
+      const pureBurnCost = totalPayout / N;
+      const burnRate = (pureBurnCost / sumInsured) * 100;
+      const var99 = payouts[Math.floor(0.99 * N)];
+      
+      let tvarSum = 0;
+      const top1Count = Math.floor(0.01 * N);
+      for (let i = N - top1Count; i < N; i++) {
+        tvarSum += payouts[i];
+      }
+      const tvar99 = tvarSum / top1Count;
+
+      // Variance
+      let sumSqDiff = 0;
+      for (let i = 0; i < N; i++) {
+        sumSqDiff += Math.pow(payouts[i] - pureBurnCost, 2);
+      }
+      const stdDev = Math.sqrt(sumSqDiff / N);
+      const commercialPrem = pureBurnCost + (riskMarginPct / 100) * stdDev + 0.10 * pureBurnCost;
+
+      // Update UI Stats
+      document.getElementById('stat-burn-cost').innerText = `₹${pureBurnCost.toFixed(2)}`;
+      document.getElementById('stat-burn-rate').innerText = `${burnRate.toFixed(2)}%`;
+      document.getElementById('stat-tvar').innerText = `₹${tvar99.toFixed(2)}`;
+      document.getElementById('stat-commercial-prem').innerText = `₹${commercialPrem.toFixed(2)}`;
+
+      renderPayoutChart(strike, exit, sumInsured);
+      renderExceedanceChart(payouts, N, sumInsured);
+    }
+
+    function renderPayoutChart(strike, exit, sumInsured) {
+      const ctx = document.getElementById('payoutChart').getContext('2d');
+      const labels = [];
+      const data = [];
+      
+      const minX = Math.min(strike, exit) * 0.7;
+      const maxX = Math.max(strike, exit) * 1.3;
+      const steps = 40;
+      const dx = (maxX - minX) / steps;
+
+      for (let i = 0; i <= steps; i++) {
+        const x = minX + i * dx;
+        labels.push(x.toFixed(0));
+        let p = 0;
+        if (currentPeril === 'drought') {
+          if (x >= exit) p = sumInsured;
+          else if (x > strike) p = sumInsured * (x - strike) / (exit - strike);
+        } else {
+          if (x <= exit) p = sumInsured;
+          else if (x < strike) p = sumInsured * (strike - x) / (strike - exit);
+        }
+        data.push(p);
+      }
+
+      if (payoutChart) payoutChart.destroy();
+      payoutChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Contract Payout (INR)',
+            data: data,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.12)',
+            fill: true,
+            tension: 0.1,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
+          }
+        }
+      });
+    }
+
+    function renderExceedanceChart(payouts, N, sumInsured) {
+      const ctx = document.getElementById('exceedanceChart').getContext('2d');
+      const points = [50, 75, 90, 95, 98, 99, 99.5, 99.9];
+      const labels = points.map(p => `P${p}`);
+      const data = points.map(p => payouts[Math.floor((p / 100) * N)]);
+
+      if (exceedanceChart) exceedanceChart.destroy();
+      exceedanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Loss Exposure (INR)',
+            data: data,
+            backgroundColor: ['#3b82f6', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e', '#e11d48', '#be123c'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
+          }
+        }
+      });
+    }
+
+    // Initial run
+    window.onload = function() {
+      updateSimulation();
+    };
+  </script>
+</body>
+</html>
