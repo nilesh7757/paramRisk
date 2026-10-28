@@ -1,0 +1,14 @@
+{
+  "iterations": 10000,
+  "contract_name": "Ahmedabad Urban Daily-Wage Heatwave Shield",
+  "sum_insured": 15000.0,
+  "pure_premium": 797.91,
+  "burn_rate_pct": 5.32,
+  "claim_frequency_pct": 11.51,
+  "standard_deviation": 2785.35,
+  "var_95": 6948.44,
+  "var_99": 15000.0,
+  "tvar_99_expected_shortfall": 15000.0,
+  "suggested_commercial_premium": 1295.5,
+  "currency": "INR"
+}
